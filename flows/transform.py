@@ -1,57 +1,90 @@
 # transform.py
 from prefect import flow, task
-from prefect.blocks.system import Secret
+# 1. Import Library Block System (Sesuai snippet Anda)
+from prefect.blocks.system import Secret 
 from prefect_dbt.cloud import DbtCloudCredentials
-# KITA IMPORT DUA FUNGSI SEKARANG: TRIGGER DAN WAIT
 from prefect_dbt.cloud.jobs import trigger_dbt_cloud_job_run, wait_for_dbt_cloud_job_run
 
-# --- Konfigurasi ---
-DBT_CLOUD_API_TOKEN_BLOCK = "dbt-cloud-api-token"
-DBT_CLOUD_ACCOUNT_ID_BLOCK = "dbt-cloud-account-id"
-DBT_CLOUD_JOB_ID = 70471823530095
+# --- Konfigurasi Nama Block ---
+# Pastikan nama ini SAMA PERSIS dengan yang ada di UI Prefect Cloud Anda
+BLOCK_NAME_API_TOKEN = "dbt-cloud-api-token"
+BLOCK_NAME_ACCOUNT_ID = "dbt-cloud-account-id"
+
+# Ganti dengan Job ID Anda
+DBT_CLOUD_JOB_ID = 70471823530095 
 
 @task(name="Get dbt Cloud Credentials")
 async def get_dbt_creds_block() -> DbtCloudCredentials:
-    """Mengambil kredensial dbt Cloud dari Prefect Blocks."""
+    """
+    Mengambil kredensial menggunakan pola:
+    secret_block = Secret.load("BLOCK_NAME")
+    value = secret_block.get()
+    """
+    print("--- MEMUAT KREDENSIAL DARI BLOCK ---")
+
+    # ---------------------------------------------------------
+    # BAGIAN 1: API TOKEN
+    # ---------------------------------------------------------
+    print(f"1. Loading Block: {BLOCK_NAME_API_TOKEN}")
     
-    # Load secret
-    api_token_block = await Secret.load(DBT_CLOUD_API_TOKEN_BLOCK)
-    account_id_block = await Secret.load(DBT_CLOUD_ACCOUNT_ID_BLOCK)
+    # Menggunakan kode snippet Anda (tambah await karena ini async flow)
+    secret_block_token = await Secret.load(BLOCK_NAME_API_TOKEN)
     
-    # Menggunakan .get() untuk mengambil nilai string
+    # Mengakses value yang tersimpan (bagian .get())
+    api_key_value = secret_block_token.get()
+    
+    # Validasi sederhana
+    if not api_key_value:
+        raise ValueError("Block API Token kosong!")
+    print("   ✅ API Token berhasil diambil.")
+
+
+    # ---------------------------------------------------------
+    # BAGIAN 2: ACCOUNT ID
+    # ---------------------------------------------------------
+    print(f"2. Loading Block: {BLOCK_NAME_ACCOUNT_ID}")
+    
+    # Menggunakan kode snippet Anda
+    secret_block_account = await Secret.load(BLOCK_NAME_ACCOUNT_ID)
+    
+    # Mengakses value
+    account_id_value = secret_block_account.get()
+    
+    print(f"   ✅ Account ID berhasil diambil: {account_id_value}")
+
+    # ---------------------------------------------------------
+    # RETURN KREDENSIAL
+    # ---------------------------------------------------------
     return DbtCloudCredentials(
-        api_key=api_token_block.get(),      # Menggunakan 'api_key' (sesuai perbaikan sebelumnya)
-        account_id=int(account_id_block.get())
+        api_key=api_key_value,           # Masukkan hasil .get() ke sini
+        account_id=int(account_id_value) # Pastikan jadi angka (integer)
     )
 
 @flow(name="Trigger dbt Cloud Flow")
 async def dbt_transform_flow():
-    """Memicu job dbt Cloud dan menunggunya selesai."""
+    """Memicu job dbt Cloud."""
     
-    print("Mengambil kredensial...")
+    # Panggil task di atas
     creds = await get_dbt_creds_block()
     
-    print(f"1. Memicu Job ID: {DBT_CLOUD_JOB_ID}...")
+    print(f"Memicu Job ID: {DBT_CLOUD_JOB_ID}...")
     
-    # LANGKAH 1: TRIGGER (Tanpa menunggu)
-    # Kita hapus 'wait_for_completion' yang menyebabkan error
+    # Trigger Job
     job_run = await trigger_dbt_cloud_job_run(
         dbt_cloud_credentials=creds,
         job_id=DBT_CLOUD_JOB_ID
     )
     
     run_id = job_run.id
-    print(f"✅ Job berhasil dipicu! Run ID: {run_id}")
-    print("2. Menunggu job selesai (ini mungkin memakan waktu)...")
+    print(f"✅ Job dipicu! Run ID: {run_id}. Menunggu selesai...")
 
-    # LANGKAH 2: WAIT (Menunggu secara eksplisit)
-    # Kita gunakan fungsi khusus untuk menunggu
+    # Wait Job
     await wait_for_dbt_cloud_job_run(
         dbt_cloud_credentials=creds,
         job_run_id=run_id
     )
     
-    print(f"🎉 dbt Cloud Job {run_id} selesai dengan sukses!")
+    print(f"🎉 Selesai!")
 
 if __name__ == "__main__":
     import asyncio
