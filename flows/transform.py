@@ -8,7 +8,7 @@ from prefect_dbt.cloud.jobs import trigger_dbt_cloud_job_run
 DBT_CLOUD_API_TOKEN_BLOCK = "dbt-cloud-api-token"
 DBT_CLOUD_ACCOUNT_ID_BLOCK = "dbt-cloud-account-id"
 # Ganti dengan Job ID Anda yang benar!
-DBT_CLOUD_JOB_ID = 70403151603881 
+DBT_CLOUD_JOB_ID = 70471823530095 
 
 @task(name="Get dbt Cloud Credentials")
 async def get_dbt_creds_block() -> DbtCloudCredentials:
@@ -72,3 +72,4 @@ async def dbt_transform_flow():
 if __name__ == "__main__":
     import asyncio
     asyncio.run(dbt_transform_flow())
+
