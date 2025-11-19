@@ -46,7 +46,7 @@ async def get_dbt_creds_block() -> DbtCloudCredentials:
     print("--- END DEBUGGING ---")
 
     return DbtCloudCredentials(
-        api_token=api_token_value,
+        api_key=api_token_value,
         account_id=int(account_id_value)
     )
 
@@ -72,4 +72,5 @@ async def dbt_transform_flow():
 if __name__ == "__main__":
     import asyncio
     asyncio.run(dbt_transform_flow())
+
 
