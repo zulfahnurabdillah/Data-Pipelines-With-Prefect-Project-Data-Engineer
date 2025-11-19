@@ -1,6 +1,6 @@
 # flows/main_pipeline.py
 from prefect import flow
-from flows.transform import dbt_transform_flow
+from transform import dbt_transform_flow
 
 @flow(name="E-commerce dbt Transformation")
 async def e2e_dbt_pipeline():
@@ -14,4 +14,5 @@ async def e2e_dbt_pipeline():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(e2e_dbt_pipeline())
