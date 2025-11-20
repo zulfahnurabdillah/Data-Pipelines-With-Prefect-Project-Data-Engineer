@@ -6,7 +6,7 @@ from prefect_dbt.cloud.jobs import trigger_dbt_cloud_job_run, wait_for_dbt_cloud
 # --- ⚠️ HARDCODE KREDENSIAL (JANGAN SAMPAI SALAH) ⚠️ ---
 
 # 1. Masukkan Token dbtc_ Anda di sini (Pastikan tidak ada spasi!)
-MY_TOKEN = "dbtc_..........................................."
+MY_TOKEN = "dbtc_ZF0-iF8TzfvRRjLmIkd2mMYlmszQbTHC3O1r9-j3KU-jrvuSGM"
 
 # 2. Data Akun Anda
 MY_ACCOUNT_ID = 70471823510118
@@ -60,3 +60,4 @@ async def dbt_transform_flow():
 if __name__ == "__main__":
     import asyncio
     asyncio.run(dbt_transform_flow())
+
