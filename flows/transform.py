@@ -1,55 +1,46 @@
 # transform.py
 from prefect import flow, task
-from prefect.blocks.system import Secret
 from prefect_dbt.cloud import DbtCloudCredentials
 from prefect_dbt.cloud.jobs import trigger_dbt_cloud_job_run, wait_for_dbt_cloud_job_run
 
-# --- Konfigurasi ---
-BLOCK_NAME_API_TOKEN = "dbt-cloud-api-token"
-BLOCK_NAME_ACCOUNT_ID = "dbt-cloud-account-id"
+# --- ⚠️ HARDCODE KREDENSIAL (BYPASS BLOCKS) ⚠️ ---
 
-# Masukkan Job ID Anda (Angka)
-DBT_CLOUD_JOB_ID = 70471823530095 
+# 1. Masukkan Token dbtc_ Anda di sini (PASTIKAN TIDAK ADA SPASI)
+MY_TOKEN = "dbtc_ZF0-iF8TzfvRRjLmIkd2mMYlmszQbTHC3O1r9-j3KU-jrvuSGM"
 
-# --- ⚠️ KUNCI RAHASIA KITA: HOST KHUSUS ---
-# Jangan pakai https://, cukup domain saja
-MY_DBT_HOST = "at088.us1.dbt.com"
+# 2. Data yang sudah terbukti benar dari tes lokal Anda
+MY_ACCOUNT_ID = 70471823510118
+MY_JOB_ID = 70471823530095
+MY_HOST = "at088.us1.dbt.com"
 
-@task(name="Get dbt Cloud Credentials")
-async def get_dbt_creds_block() -> DbtCloudCredentials:
-    """Mengambil kredensial dbt Cloud dari Prefect Blocks."""
+@task(name="Get Hardcoded Credentials")
+def get_dbt_creds_direct() -> DbtCloudCredentials:
+    """
+    Menggunakan kredensial langsung (Hardcoded) untuk menghindari
+    masalah pembacaan Prefect Block.
+    """
+    print(f"--- DEBUG: Menggunakan Host: {MY_HOST} ---")
+    print(f"--- DEBUG: Menggunakan Account: {MY_ACCOUNT_ID} ---")
     
-    print(f"--- DEBUG: Menggunakan Host Khusus: {MY_DBT_HOST} ---")
-
-    # 1. Load API Token dari Block
-    api_token_block = await Secret.load(BLOCK_NAME_API_TOKEN)
-    api_key_val = api_token_block.get()
-
-    # 2. Load Account ID dari Block
-    account_id_block = await Secret.load(BLOCK_NAME_ACCOUNT_ID)
-    account_id_val = int(account_id_block.get())
-
-    print(f"--- DEBUG: Menggunakan Account ID: {account_id_val} ---")
-
-    # 3. Return Kredensial dengan HOST yang benar
     return DbtCloudCredentials(
-        api_key=api_key_val, 
-        account_id=account_id_val,
-        host=MY_DBT_HOST  # <--- INI YANG MEMBUATNYA BERHASIL
+        api_key=MY_TOKEN,          # Token langsung
+        account_id=MY_ACCOUNT_ID,  # ID langsung
+        host=MY_HOST               # Host langsung
     )
 
 @flow(name="Trigger dbt Cloud Flow")
 async def dbt_transform_flow():
     """Memicu job dbt Cloud."""
     
-    creds = await get_dbt_creds_block()
+    # Panggil task sinkron biasa (tanpa await karena hardcode)
+    creds = get_dbt_creds_direct()
     
-    print(f"Memicu Job ID: {DBT_CLOUD_JOB_ID} di host {MY_DBT_HOST}...")
+    print(f"Memicu Job ID: {MY_JOB_ID}...")
     
     # Trigger
     job_run = await trigger_dbt_cloud_job_run(
         dbt_cloud_credentials=creds,
-        job_id=DBT_CLOUD_JOB_ID
+        job_id=MY_JOB_ID
     )
     
     run_id = job_run.id
