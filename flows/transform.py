@@ -1,75 +1,78 @@
 # transform.py
 from prefect import flow, task
-# 1. Import Library Block System (Sesuai snippet Anda)
 from prefect.blocks.system import Secret 
 from prefect_dbt.cloud import DbtCloudCredentials
 from prefect_dbt.cloud.jobs import trigger_dbt_cloud_job_run, wait_for_dbt_cloud_job_run
 
-# --- Konfigurasi Nama Block ---
-# Pastikan nama ini SAMA PERSIS dengan yang ada di UI Prefect Cloud Anda
+# --- ⚠️ ISI DATA ASLI ANDA DI SINI (HARDCODE) ⚠️ ---
+# Kita akan memaksa update Block menggunakan nilai ini setiap kali flow berjalan.
+
+# 1. Token Service (dbtc_...)
+MY_REAL_TOKEN = "dbtc_ZF0-iF8TzfvRRjLmIkd2mMYlmszQbTHC3O1r9-j3KU-jrvuSGM" 
+
+# 2. Account ID (Angka dalam string)
+MY_REAL_ACCOUNT_ID = "70471823510118"
+
+# 3. Job ID (Angka Integer)
+DBT_CLOUD_JOB_ID = 70471823530095
+
+# Nama Block (Jangan diubah)
 BLOCK_NAME_API_TOKEN = "dbt-cloud-api-token"
 BLOCK_NAME_ACCOUNT_ID = "dbt-cloud-account-id"
 
-# Ganti dengan Job ID Anda
-DBT_CLOUD_JOB_ID = 70471823530095 
 
 @task(name="Get dbt Cloud Credentials")
 async def get_dbt_creds_block() -> DbtCloudCredentials:
     """
-    Mengambil kredensial menggunakan pola:
-    secret_block = Secret.load("BLOCK_NAME")
-    value = secret_block.get()
+    Task ini akan:
+    1. MEMAKSA simpan token hardcoded ke Block Prefect (Overwriting).
+    2. Memuat kembali Block tersebut untuk digunakan.
     """
-    print("--- MEMUAT KREDENSIAL DARI BLOCK ---")
+    print("--- 🔄 FORCE UPDATING BLOCKS ---")
 
     # ---------------------------------------------------------
-    # BAGIAN 1: API TOKEN
+    # LANGKAH 1: PAKSA SIMPAN (SAVE)
+    # Ini akan memperbaiki Block di Cloud jika sebelumnya rusak/salah
     # ---------------------------------------------------------
-    print(f"1. Loading Block: {BLOCK_NAME_API_TOKEN}")
+    print(f"Menyimpan Token ke Block '{BLOCK_NAME_API_TOKEN}'...")
+    # Kita gunakan await karena .save() bersifat async di dalam flow
+    await Secret(value=MY_REAL_TOKEN).save(name=BLOCK_NAME_API_TOKEN, overwrite=True)
     
-    # Menggunakan kode snippet Anda (tambah await karena ini async flow)
+    print(f"Menyimpan Account ID ke Block '{BLOCK_NAME_ACCOUNT_ID}'...")
+    await Secret(value=MY_REAL_ACCOUNT_ID).save(name=BLOCK_NAME_ACCOUNT_ID, overwrite=True)
+    
+    print("✅ Blocks berhasil diperbarui dengan data hardcoded.")
+
+
+    # ---------------------------------------------------------
+    # LANGKAH 2: MUAT KEMBALI (LOAD & GET)
+    # Sesuai permintaan Anda
+    # ---------------------------------------------------------
+    print("--- MEMUAT KREDENSIAL ---")
+    
+    # Load Token
     secret_block_token = await Secret.load(BLOCK_NAME_API_TOKEN)
-    
-    # Mengakses value yang tersimpan (bagian .get())
     api_key_value = secret_block_token.get()
     
-    # Validasi sederhana
-    if not api_key_value:
-        raise ValueError("Block API Token kosong!")
-    print("   ✅ API Token berhasil diambil.")
-
-
-    # ---------------------------------------------------------
-    # BAGIAN 2: ACCOUNT ID
-    # ---------------------------------------------------------
-    print(f"2. Loading Block: {BLOCK_NAME_ACCOUNT_ID}")
-    
-    # Menggunakan kode snippet Anda
+    # Load Account ID
     secret_block_account = await Secret.load(BLOCK_NAME_ACCOUNT_ID)
-    
-    # Mengakses value
     account_id_value = secret_block_account.get()
     
-    print(f"   ✅ Account ID berhasil diambil: {account_id_value}")
+    print(f"✅ Kredensial siap digunakan for Account: {account_id_value}")
 
-    # ---------------------------------------------------------
-    # RETURN KREDENSIAL
-    # ---------------------------------------------------------
     return DbtCloudCredentials(
-        api_key=api_key_value,           # Masukkan hasil .get() ke sini
-        account_id=int(account_id_value) # Pastikan jadi angka (integer)
+        api_key=api_key_value,
+        account_id=int(account_id_value)
     )
 
 @flow(name="Trigger dbt Cloud Flow")
 async def dbt_transform_flow():
     """Memicu job dbt Cloud."""
     
-    # Panggil task di atas
     creds = await get_dbt_creds_block()
     
     print(f"Memicu Job ID: {DBT_CLOUD_JOB_ID}...")
     
-    # Trigger Job
     job_run = await trigger_dbt_cloud_job_run(
         dbt_cloud_credentials=creds,
         job_id=DBT_CLOUD_JOB_ID
@@ -78,7 +81,6 @@ async def dbt_transform_flow():
     run_id = job_run.id
     print(f"✅ Job dipicu! Run ID: {run_id}. Menunggu selesai...")
 
-    # Wait Job
     await wait_for_dbt_cloud_job_run(
         dbt_cloud_credentials=creds,
         job_run_id=run_id
